@@ -1,0 +1,35 @@
+# build outputs
+build/
+build_*/
+obj_dir*/
+sim_build*/
+riscof_work*/
+riscof_*.log
+tb/lockstep/work/
+results.xml
+*.vcd
+*.fst
+*.o
+*.elf
+*.hex
+*.bin
+*.dis
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# vivado
+.Xil/
+*.jou
+*.log
+vivado_*
+*.str
+
+# editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
