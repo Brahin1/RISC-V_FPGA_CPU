@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""rv32iss.py - small RV32I + Zicsr instruction-set simulator.
+"""rv32iss.py - small RV32IM + Zicsr instruction-set simulator.
 
-Golden model for the RTL: the ALU reference function used by the unit tests
-lives here, and ISS().run() executes a whole ELF.
+Golden model for the cocotb unit tests (the ALU / M-extension reference
+functions live here) and an alternative to Spike for lockstep runs:
+
+  rv32iss.py prog.elf                 run, echo console, exit with test status
+  rv32iss.py prog.elf --trace t.txt   also write a retire trace in the same
+                                      format as the Verilator harness
 
 Same memory map as the SoC: IMEM 0x0 (fetch only), DMEM 0x1_0000, MMIO 0x1000_0000.
 Machine mode only, direct-mode mtvec, misaligned load/store/fetch trap.
 """
 
+import argparse
 import os
 import struct
 import sys
@@ -53,6 +58,39 @@ def alu(op, a, b):
     }[op] & M32
 
 
+def muldiv(op, a, b):
+    a &= M32
+    b &= M32
+    sa, sb = s32(a), s32(b)
+    if op == "mul":
+        return (a * b) & M32
+    if op == "mulh":
+        return ((sa * sb) >> 32) & M32
+    if op == "mulhsu":
+        return ((sa * b) >> 32) & M32
+    if op == "mulhu":
+        return ((a * b) >> 32) & M32
+    if op == "div":
+        if b == 0:
+            return M32
+        if sa == -(1 << 31) and sb == -1:
+            return a
+        q = abs(sa) // abs(sb)
+        return (-q if (sa < 0) != (sb < 0) else q) & M32
+    if op == "divu":
+        return M32 if b == 0 else a // b
+    if op == "rem":
+        if b == 0:
+            return a
+        if sa == -(1 << 31) and sb == -1:
+            return 0
+        r = abs(sa) % abs(sb)
+        return (-r if sa < 0 else r) & M32
+    if op == "remu":
+        return a if b == 0 else a % b
+    raise ValueError(op)
+
+
 class Trap(Exception):
     def __init__(self, cause, tval=0):
         super().__init__(cause)
@@ -61,6 +99,8 @@ class Trap(Exception):
 
 class ISS:
     ALU_F3 = {0: "add", 1: "sll", 2: "slt", 3: "sltu", 4: "xor", 5: "srl", 6: "or", 7: "and"}
+    MD_F3 = {0: "mul", 1: "mulh", 2: "mulhsu", 3: "mulhu",
+             4: "div", 5: "divu", 6: "rem", 7: "remu"}
 
     def __init__(self):
         self.x = [0] * 32
@@ -266,7 +306,9 @@ class ISS:
             else:
                 self.wr(rd, alu(self.ALU_F3[f3], a, imm_i), rec)
         elif opc == 0x33:                                         # OP
-            if f7 == 0:
+            if f7 == 1:
+                self.wr(rd, muldiv(self.MD_F3[f3], a, b), rec)
+            elif f7 == 0:
                 self.wr(rd, alu(self.ALU_F3[f3], a, b), rec)
             elif f7 == 0x20 and f3 in (0, 5):
                 self.wr(rd, alu("sub" if f3 == 0 else "sra", a, b), rec)
@@ -310,3 +352,29 @@ class ISS:
             if self.tohost is not None:
                 return self.tohost
         return None
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("elf")
+    ap.add_argument("--trace")
+    ap.add_argument("--max-steps", type=int, default=50_000_000)
+    args = ap.parse_args()
+
+    iss = ISS()
+    iss.load_elf(args.elf)
+    tf = open(args.trace, "w") if args.trace else None
+    res = iss.run(args.max_steps, tf)
+    if tf:
+        tf.close()
+    sys.stdout.write(iss.console.decode(errors="replace"))
+    if res is None:
+        print(f"[iss] TIMEOUT after {args.max_steps} steps", file=sys.stderr)
+        sys.exit(2)
+    print(f"[iss] {'PASS' if res == 1 else 'FAIL'} instret={iss.instret}", file=sys.stderr)
+    sys.exit(0 if res == 1 else 1)
+
+
+if __name__ == "__main__":
+    main()
