@@ -45,11 +45,11 @@ module sc_core
 
   decoder u_dec (.insn(insn), .ctrl(c));
 
-  // register file (write-through bypass not needed: write at end of cycle)
+  // register file: no write-through, the write lands at the end of the cycle
   logic [31:0] rs1, rs2, rd_val;
   logic        rf_we;
 
-  regfile u_rf (
+  regfile #(.BYPASS(1'b0)) u_rf (
     .clk (clk),
     .ra1 (c.rs1), .rd1 (rs1),
     .ra2 (c.rs2), .rd2 (rs2),

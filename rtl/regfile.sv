@@ -2,11 +2,14 @@
 // 32 x 32-bit register file, 2 asynchronous read ports, 1 synchronous write port.
 // x0 is hard-wired to zero. Maps to distributed RAM (LUTRAM) on 7-series.
 //
-// Reads are write-through: if WB writes the register ID is reading in the same
-// cycle, the new value is returned. This closes the WB -> ID hazard without a
-// separate forwarding path.
+// With BYPASS = 1, reads are write-through: if WB writes the register ID is
+// reading in the same cycle, the new value is returned. This closes the
+// WB -> ID hazard without a separate forwarding path. The single-cycle core
+// uses BYPASS = 0 (it reads and writes the same register in one cycle).
 
-module regfile (
+module regfile #(
+  parameter bit BYPASS = 1'b1
+) (
   input  logic        clk,
 
   input  logic [4:0]  ra1,
@@ -27,13 +30,13 @@ module regfile (
   end
 
   always_comb begin
-    if (ra1 == 5'd0)          rd1 = '0;
-    else if (we && wa == ra1) rd1 = wd;
-    else                      rd1 = regs[ra1];
+    if (ra1 == 5'd0)                    rd1 = '0;
+    else if (BYPASS && we && wa == ra1) rd1 = wd;
+    else                                rd1 = regs[ra1];
 
-    if (ra2 == 5'd0)          rd2 = '0;
-    else if (we && wa == ra2) rd2 = wd;
-    else                      rd2 = regs[ra2];
+    if (ra2 == 5'd0)                    rd2 = '0;
+    else if (BYPASS && we && wa == ra2) rd2 = wd;
+    else                                rd2 = regs[ra2];
   end
 
 `ifndef SYNTHESIS
