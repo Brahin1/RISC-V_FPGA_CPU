@@ -1,5 +1,5 @@
 // decoder.sv
-// RV32I + Zicsr instruction decoder (machine mode only).
+// RV32IM + Zicsr instruction decoder (machine mode only).
 // Produces a ctrl_t control word; anything not recognised sets ctrl.illegal.
 
 module decoder
@@ -127,7 +127,16 @@ module decoder
         ctrl.rs1_used = 1'b1;
         ctrl.rs2_used = 1'b1;
         writes_rd     = 1'b1;
-        if (funct7 == 7'b0000000) begin
+        if (funct7 == 7'b0000001) begin
+          // M extension
+          if (funct3[2]) begin
+            ctrl.is_div  = 1'b1;
+            ctrl.res_sel = RES_DIV;
+          end else begin
+            ctrl.is_mul  = 1'b1;
+            ctrl.res_sel = RES_MUL;
+          end
+        end else if (funct7 == 7'b0000000) begin
           unique case (funct3)
             3'b000: ctrl.alu_op = ALU_ADD;
             3'b001: ctrl.alu_op = ALU_SLL;

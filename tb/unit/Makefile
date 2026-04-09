@@ -1,7 +1,7 @@
 # cocotb unit tests (Verilator)
 #
 #   make            run all
-#   make alu        run one (alu | regfile)
+#   make alu        run one (alu | regfile | muldiv)
 #
 # Each test module compares the RTL against the reference functions in
 # tb/iss/rv32iss.py.
@@ -9,7 +9,7 @@
 ROOT := $(abspath ../..)
 RTL  := $(ROOT)/rtl
 
-TESTS := alu regfile
+TESTS := alu regfile muldiv
 
 all: $(TESTS)
 
@@ -19,9 +19,11 @@ $(TESTS):
 
 TOP_alu     := alu
 TOP_regfile := regfile
+TOP_muldiv  := muldiv
 
 SRC_alu     := $(RTL)/core_pkg.sv $(RTL)/alu.sv
 SRC_regfile := $(RTL)/regfile.sv
+SRC_muldiv  := $(RTL)/core_pkg.sv $(RTL)/muldiv.sv
 
 clean:
 	rm -rf sim_build_* results.xml __pycache__ *.vcd
