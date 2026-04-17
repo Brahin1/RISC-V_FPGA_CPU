@@ -3,6 +3,7 @@
 // Plusargs:
 //   +imem=<file.hex> +dmem=<file.hex>   memory images (read by tcm.sv)
 //   +max_cycles=<n>                     timeout (default 50M)
+//   +trace=<file>                       retire trace for tb/lockstep/compare.py
 //   +vcd=<file>                         waveform dump (build with TRACE=1)
 //   +quiet                              don't echo the console
 //
@@ -44,6 +45,12 @@ int main(int argc, char **argv)
     if (auto s = plusarg("max_cycles"); !s.empty()) max_cycles = strtoull(s.c_str(), nullptr, 0);
     bool quiet = !plusarg("quiet").empty();
 
+    FILE *trace = nullptr;
+    if (auto s = plusarg("trace"); !s.empty()) {
+        trace = fopen(s.c_str(), "w");
+        if (!trace) { perror(s.c_str()); return 3; }
+    }
+
 #if VM_TRACE
     std::unique_ptr<VerilatedVcdC> vcd;
     if (auto s = plusarg("vcd"); !s.empty()) {
@@ -83,7 +90,15 @@ int main(int argc, char **argv)
         top->clk = 0; top->eval();
 
         // sample outputs for the cycle that is about to complete
-        if (top->rvfi_valid) instret++;
+        if (top->rvfi_valid) {
+            instret++;
+            if (trace) {
+                fprintf(trace, "%08x %08x %02u %08x %08x %x %08x\n",
+                        top->rvfi_pc_rdata, top->rvfi_insn, top->rvfi_rd_addr,
+                        top->rvfi_rd_wdata, top->rvfi_mem_addr, top->rvfi_mem_wmask,
+                        top->rvfi_mem_wdata);
+            }
+        }
         if (top->console_valid && !quiet) {
             fputc(top->console_byte, stdout);
             fflush(stdout);
@@ -109,6 +124,7 @@ int main(int argc, char **argv)
     else                  fprintf(stderr, "[sim] TIMEOUT after %llu cycles\n",
                                   (unsigned long long)cycle);
 
+    if (trace) fclose(trace);
 #if VM_TRACE
     if (vcd) vcd->close();
 #endif
