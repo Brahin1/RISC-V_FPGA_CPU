@@ -6,12 +6,13 @@
 
 #define MMIO_BASE     0x10000000u
 #define REG32(off)    (*(volatile uint32_t *)(MMIO_BASE + (off)))
-#define CONSOLE_REG   REG32(0x04)
-#define MTIME_LO      REG32(0x08)
-#define MTIME_HI      REG32(0x0C)
-#define MTIMECMP_LO   REG32(0x10)
-#define MTIMECMP_HI   REG32(0x14)
-#define LED_REG       REG32(0x18)
+#define TOHOST_REG    REG32(0x00)
+#define CONSOLE_REG   REG32(0x08)
+#define MTIME_LO      REG32(0x10)
+#define MTIME_HI      REG32(0x14)
+#define MTIMECMP_LO   REG32(0x18)
+#define MTIMECMP_HI   REG32(0x1C)
+#define LED_REG       REG32(0x20)
 
 void con_putc(char c);
 void con_puts(const char *s);

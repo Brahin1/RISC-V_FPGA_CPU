@@ -155,12 +155,14 @@ package core_pkg;
   localparam logic [31:0] DMEM_BASE = 32'h0001_0000;
   localparam logic [31:0] MMIO_BASE = 32'h1000_0000;
 
-  localparam logic [7:0] MMIO_TOHOST   = 8'h00;
-  localparam logic [7:0] MMIO_CONSOLE  = 8'h04;
-  localparam logic [7:0] MMIO_MTIME    = 8'h08;
-  localparam logic [7:0] MMIO_MTIMEH   = 8'h0C;
-  localparam logic [7:0] MMIO_MTIMECMP = 8'h10;
-  localparam logic [7:0] MMIO_MTIMECMPH= 8'h14;
-  localparam logic [7:0] MMIO_LED      = 8'h18;
+  // tohost is 8 bytes wide (upper word reserved) so the layout stays
+  // compatible with Spike's 64-bit HTIF tohost when running the same ELF.
+  localparam logic [7:0] MMIO_TOHOST    = 8'h00;
+  localparam logic [7:0] MMIO_CONSOLE   = 8'h08;
+  localparam logic [7:0] MMIO_MTIME     = 8'h10;
+  localparam logic [7:0] MMIO_MTIMEH    = 8'h14;
+  localparam logic [7:0] MMIO_MTIMECMP  = 8'h18;
+  localparam logic [7:0] MMIO_MTIMECMPH = 8'h1C;
+  localparam logic [7:0] MMIO_LED       = 8'h20;
 
 endpackage

@@ -1,5 +1,5 @@
 // sc_tb.sv - simulation top for the single-cycle reference core
-// Combinational-read memories, tohost at 0x1000_0000, console at 0x1000_0004.
+// Combinational-read memories, tohost at 0x1000_0000, console at 0x1000_0008.
 
 module sc_tb (
   input  logic        clk,
@@ -53,7 +53,7 @@ module sc_tb (
 
   assign done          = rst_n && !halted && dmem_we && in_mmio && dmem_addr[7:0] == 8'h00;
   assign tohost        = dmem_wdata;
-  assign console_valid = rst_n && !halted && dmem_we && in_mmio && dmem_addr[7:0] == 8'h04;
+  assign console_valid = rst_n && !halted && dmem_we && in_mmio && dmem_addr[7:0] == 8'h08;
   assign console_byte  = dmem_wdata[7:0];
 
 endmodule

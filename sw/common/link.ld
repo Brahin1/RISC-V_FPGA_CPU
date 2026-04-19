@@ -51,8 +51,8 @@ SECTIONS
      the pass/fail write when running the same ELF on the reference model. */
   tohost   = 0x10000000;
   fromhost = 0x10000040;
-  CONSOLE  = 0x10000004;
-  MTIME    = 0x10000008;
-  MTIMECMP = 0x10000010;
-  LED      = 0x10000018;
+  CONSOLE  = 0x10000008;
+  MTIME    = 0x10000010;
+  MTIMECMP = 0x10000018;
+  LED      = 0x10000020;
 }

@@ -1,10 +1,10 @@
 // mmio.sv
 // Memory-mapped peripherals at 0x1000_0000:
-//   +0x00 tohost    W   1 = pass, (n << 1) | 1 = test n failed
-//   +0x04 console   W   low byte pushed into a 256-entry FIFO drained by the PS
-//   +0x08 mtime     RW  64-bit free-running counter at the core clock
-//   +0x10 mtimecmp  RW  timer interrupt when mtime >= mtimecmp
-//   +0x18 led       RW
+//   +0x00 tohost    W   1 = pass, (n << 1) | 1 = test n failed (+0x04 reserved)
+//   +0x08 console   W   low byte pushed into a 256-entry FIFO drained by the PS
+//   +0x10 mtime     RW  64-bit free-running counter at the core clock
+//   +0x18 mtimecmp  RW  timer interrupt when mtime >= mtimecmp
+//   +0x20 led       RW
 // Reads return data one cycle after the request, matching the BRAM timing.
 
 module mmio
