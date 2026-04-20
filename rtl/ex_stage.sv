@@ -220,8 +220,9 @@ module ex_stage
     exc_cause = id_ex.exc_cause;
     exc_tval  = '0;
     if (id_ex.exc) begin
-      // illegal instruction reports the instruction bits, like Spike
+      // illegal instruction reports the instruction bits, EBREAK its own PC
       if (id_ex.exc_cause == EXC_ILLEGAL_INSN) exc_tval = id_ex.insn;
+      if (id_ex.exc_cause == EXC_BREAKPOINT)   exc_tval = id_ex.pc;
     end else if (is_ctrl && target_misaligned) begin
       exc       = 1'b1;
       exc_cause = EXC_INSN_MISALIGNED;
