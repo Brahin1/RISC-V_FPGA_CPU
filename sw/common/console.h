@@ -22,4 +22,8 @@ void con_putdec(uint32_t v);
 static inline uint32_t rdcycle(void)   { uint32_t v; __asm__ volatile ("csrr %0, mcycle"   : "=r"(v)); return v; }
 static inline uint32_t rdinstret(void) { uint32_t v; __asm__ volatile ("csrr %0, minstret" : "=r"(v)); return v; }
 
+uint64_t rdcycle64(void);
+uint64_t rdinstret64(void);
+void     print_perf_counters(void);
+
 #endif
