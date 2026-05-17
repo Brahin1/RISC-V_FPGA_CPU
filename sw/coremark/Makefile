@@ -3,6 +3,8 @@
 #   make                      ITERATIONS=10 (simulation-sized)
 #   make ITERATIONS=3000      hardware run (>= 10 s at 150 MHz)
 #   make sim                  run on the Verilator model and report CPI
+#   make lockstep             build without counter reads (build_lockstep/) and
+#                             compare against Spike instruction by instruction
 #
 # CoreMark sources come from the eembc/coremark submodule; only the port
 # files in port/ are ours.
@@ -12,7 +14,7 @@ ITERATIONS ?= 10
 CM         := coremark
 
 OPT        := -O2
-CFLAGS     := $(OPT) -DITERATIONS=$(ITERATIONS) -DPERFORMANCE_RUN=1 -DTOTAL_DATA_SIZE=2000 \
+CFLAGS     := $(OPT) $(EXTRA_CFLAGS) -DITERATIONS=$(ITERATIONS) -DPERFORMANCE_RUN=1 -DTOTAL_DATA_SIZE=2000 \
               -DFLAGS_STR='"$(OPT)"' -I$(CM) -Iport -Wno-implicit-function-declaration
 
 SRCS       := $(CM)/core_list_join.c $(CM)/core_main.c $(CM)/core_matrix.c \
@@ -27,3 +29,9 @@ sim: all
 	python3 $(TOOLS)/cpi_report.py $(BUILD)/sim.log
 
 .PHONY: sim
+
+lockstep:
+	$(MAKE) BUILD=build_lockstep EXTRA_CFLAGS=-DLOCKSTEP all
+	python3 $(ROOT)/tb/lockstep/run_lockstep.py --elf build_lockstep/$(PROG).elf
+
+.PHONY: lockstep

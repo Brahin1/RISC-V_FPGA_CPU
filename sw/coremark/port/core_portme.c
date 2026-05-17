@@ -37,6 +37,12 @@ static snapshot_t t_start, t_stop;
 
 static inline void snap(snapshot_t *s)
 {
+#ifdef LOCKSTEP
+    /* Counter values differ between the core and Spike; keep the lockstep
+       build free of them so the whole run compares instruction by instruction. */
+    *s = (snapshot_t){0};
+    return;
+#endif
     s->hpm[0]  = CSRR(mhpmcounter3);
     s->hpm[1]  = CSRR(mhpmcounter4);
     s->hpm[2]  = CSRR(mhpmcounter5);
@@ -68,6 +74,10 @@ void portable_init(core_portable *p, int *argc, char *argv[])
 
 void portable_fini(core_portable *p)
 {
+#ifdef LOCKSTEP
+    p->portable_id = 0;
+    return;
+#endif
     ee_u32 cyc = t_stop.cycles - t_start.cycles;
     ee_u32 ins = t_stop.instret - t_start.instret;
     ee_u32 d[6];
