@@ -13,9 +13,10 @@
 module soc_top
   import core_pkg::*;
 #(
-  parameter int IMEM_WORDS = 8192,
-  parameter int DMEM_WORDS = 8192,
-  parameter int BP_MODE    = 1
+  parameter int          IMEM_WORDS     = 8192,
+  parameter int          DMEM_WORDS     = 8192,
+  parameter logic [31:0] DMEM_BASE_ADDR = DMEM_BASE,   // simulation-only override
+  parameter int          BP_MODE        = 1
 ) (
   input  logic        clk,
   input  logic        rst_n,
@@ -99,7 +100,7 @@ module soc_top
   // Data-side address decode
   // ---------------------------------------------------------------------------
   logic sel_dmem, sel_mmio;
-  assign sel_dmem = (dmem_addr[31:DW+2] == DMEM_BASE[31:DW+2]);
+  assign sel_dmem = (dmem_addr[31:DW+2] == DMEM_BASE_ADDR[31:DW+2]);
   assign sel_mmio = (dmem_addr[31:8]    == MMIO_BASE[31:8]);
 
   typedef enum logic [1:0] { RD_NONE, RD_DMEM, RD_MMIO } rd_src_e;
@@ -172,5 +173,23 @@ module soc_top
     .con_empty     (con_empty),
     .led           (led)
   );
+
+`ifndef SYNTHESIS
+  // riscv-arch-test signature dump (RISCOF):
+  //   +signature=<file> +sig_begin=<hex byte addr> +sig_end=<hex byte addr>
+  final begin
+    string       sig_file;
+    int unsigned sig_b, sig_e;
+    int          fd;
+    if ($value$plusargs("signature=%s", sig_file) &&
+        $value$plusargs("sig_begin=%h", sig_b) &&
+        $value$plusargs("sig_end=%h", sig_e)) begin
+      fd = $fopen(sig_file, "w");
+      for (int unsigned a = sig_b; a < sig_e; a += 4)
+        $fdisplay(fd, "%08x", u_dmem.mem[(a - DMEM_BASE_ADDR) >> 2]);
+      $fclose(fd);
+    end
+  end
+`endif
 
 endmodule

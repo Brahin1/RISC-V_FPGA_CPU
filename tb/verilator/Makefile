@@ -2,6 +2,7 @@
 #   make            -> obj_dir/Vsoc_top
 #   make TRACE=1    -> with VCD support (+vcd=wave.vcd)
 #   make BP_MODE=0  -> static not-taken fetch (1 = BTFN)
+#   make riscof     -> obj_dir_riscof: 2 MB IMEM, DMEM at 0x0040_0000 (arch tests)
 #   make lint
 
 ROOT    := $(abspath ../..)
@@ -28,10 +29,15 @@ all: $(SIM)
 $(SIM): $(RTL) sim_main.cpp
 	verilator $(VFLAGS) $(RTL) sim_main.cpp
 
+# riscv-arch-test build: the branch/JAL tests are ~1.7 MB of code
+riscof: $(RTL) sim_main.cpp
+	verilator $(subst --Mdir $(OBJ),--Mdir obj_dir_riscof,$(VFLAGS)) -GIMEM_WORDS=524288 \
+	  -GDMEM_WORDS=16384 -GDMEM_BASE_ADDR=32\'h00400000 $(RTL) sim_main.cpp
+
 lint:
 	verilator --lint-only -Wall -I$(RTL_DIR) $(RTL) --top-module soc_top
 
 clean:
 	rm -rf obj_dir*
 
-.PHONY: all lint clean
+.PHONY: all riscof lint clean

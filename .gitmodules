@@ -4,3 +4,6 @@
 [submodule "sw/coremark/coremark"]
 	path = sw/coremark/coremark
 	url = https://github.com/eembc/coremark.git
+[submodule "tests/riscv-arch-test"]
+	path = tests/riscv-arch-test
+	url = https://github.com/riscv-non-isa/riscv-arch-test.git

@@ -14,7 +14,7 @@ import struct
 import sys
 
 IMEM_BASE, IMEM_SIZE = 0x0000_0000, 32 * 1024
-DMEM_BASE, DMEM_SIZE = 0x0001_0000, 32 * 1024
+DMEM_BASE, DMEM_SIZE = 0x0001_0000, 32 * 1024     # defaults; see --imem-size etc.
 
 PT_LOAD = 1
 
@@ -65,17 +65,21 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("elf")
     ap.add_argument("--out", required=True, help="output prefix")
+    ap.add_argument("--imem-size", type=lambda s: int(s, 0), default=IMEM_SIZE)
+    ap.add_argument("--dmem-base", type=lambda s: int(s, 0), default=DMEM_BASE)
+    ap.add_argument("--dmem-size", type=lambda s: int(s, 0), default=DMEM_SIZE)
     args = ap.parse_args()
+    imem_size, dmem_base, dmem_size = args.imem_size, args.dmem_base, args.dmem_size
 
     entry, segs = read_segments(args.elf)
     for addr, blob in segs:
-        in_i = IMEM_BASE <= addr < IMEM_BASE + IMEM_SIZE
-        in_d = DMEM_BASE <= addr < DMEM_BASE + DMEM_SIZE
+        in_i = IMEM_BASE <= addr < IMEM_BASE + imem_size
+        in_d = dmem_base <= addr < dmem_base + dmem_size
         if not (in_i or in_d):
             sys.exit(f"segment at 0x{addr:08x} ({len(blob)} B) is outside IMEM/DMEM")
 
-    imem, iused = place(segs, IMEM_BASE, IMEM_SIZE)
-    dmem, dused = place(segs, DMEM_BASE, DMEM_SIZE)
+    imem, iused = place(segs, IMEM_BASE, imem_size)
+    dmem, dused = place(segs, dmem_base, dmem_size)
 
     write_hex(args.out + ".imem.hex", imem, iused)
     write_hex(args.out + ".dmem.hex", dmem, dused)
