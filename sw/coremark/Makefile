@@ -22,7 +22,7 @@ SRCS       := $(CM)/core_list_join.c $(CM)/core_main.c $(CM)/core_matrix.c \
 
 include ../common/common.mk
 
-SIM ?= $(ROOT)/tb/verilator/obj_dir_bp1/Vsoc_top
+SIM ?= $(ROOT)/tb/verilator/obj_dir_bp2/Vsoc_top
 
 sim: all
 	$(SIM) +imem=$(BUILD)/$(PROG).imem.hex +dmem=$(BUILD)/$(PROG).dmem.hex | tee $(BUILD)/sim.log

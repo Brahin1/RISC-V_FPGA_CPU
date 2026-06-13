@@ -88,7 +88,7 @@ def main():
     ap.add_argument("--elf", nargs="*", default=[])
     ap.add_argument("--random", type=int, default=0, help="number of random programs")
     ap.add_argument("--seed", type=int, default=1, help="first random seed")
-    ap.add_argument("--bp-mode", type=int, default=1)
+    ap.add_argument("--bp-mode", type=int, default=2)
     ap.add_argument("--ref", choices=["spike", "iss"], default="spike")
     ap.add_argument("--max-cycles", type=int, default=200_000_000)
     ap.add_argument("-j", "--jobs", type=int, default=os.cpu_count())

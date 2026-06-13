@@ -16,7 +16,7 @@ module soc_top
   parameter int          IMEM_WORDS     = 8192,
   parameter int          DMEM_WORDS     = 8192,
   parameter logic [31:0] DMEM_BASE_ADDR = DMEM_BASE,   // simulation-only override
-  parameter int          BP_MODE        = 1
+  parameter int          BP_MODE        = 2
 ) (
   input  logic        clk,
   input  logic        rst_n,

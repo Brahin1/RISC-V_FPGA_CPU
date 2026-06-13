@@ -1,7 +1,7 @@
 # Verilator build of soc_top
 #   make            -> obj_dir/Vsoc_top
 #   make TRACE=1    -> with VCD support (+vcd=wave.vcd)
-#   make BP_MODE=0  -> static not-taken fetch (1 = BTFN)
+#   make BP_MODE=0  -> static not-taken fetch (1 = BTFN, 2 = BTB+BHT)
 #   make riscof     -> obj_dir_riscof: 2 MB IMEM, DMEM at 0x0040_0000 (arch tests)
 #   make lint
 
@@ -11,7 +11,7 @@ RTL     := $(addprefix $(RTL_DIR)/, core_pkg.sv alu.sv regfile.sv decoder.sv mul
              csr.sv branch_predictor.sv hazard_unit.sv if_stage.sv id_stage.sv \
              ex_stage.sv mem_stage.sv wb_stage.sv core_top.sv tcm.sv mmio.sv soc_top.sv)
 
-BP_MODE ?= 1
+BP_MODE ?= 2
 TRACE   ?= 0
 OBJ     ?= obj_dir_bp$(BP_MODE)
 

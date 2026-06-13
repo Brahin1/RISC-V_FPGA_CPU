@@ -17,7 +17,7 @@ module core_top
   import core_pkg::*;
 #(
   parameter logic [31:0] RESET_PC = 32'h0000_0000,
-  parameter int          BP_MODE  = 1
+  parameter int          BP_MODE  = 2
 ) (
   input  logic        clk,
   input  logic        rst_n,

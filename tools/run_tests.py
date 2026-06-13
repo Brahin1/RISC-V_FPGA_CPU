@@ -40,7 +40,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--sim", choices=["five-stage", "single-cycle", "spike"], default="five-stage")
-    ap.add_argument("--bp-mode", type=int, default=1)
+    ap.add_argument("--bp-mode", type=int, default=2)
     ap.add_argument("elfs", nargs="+")
     args = ap.parse_args()
 
