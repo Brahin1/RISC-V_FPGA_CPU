@@ -99,7 +99,7 @@ module csr
     known     = 1'b1;
     acc_rdata = '0;
     if (hpm_sel) begin
-      acc_rdata = hpm[hpm_idx - 4'd3];
+      acc_rdata = hpm[3'(hpm_idx - 4'd3)];
     end else unique case (acc_addr)
       CSR_MSTATUS:   acc_rdata = mstatus_r;
       CSR_MISA:      acc_rdata = MISA_VAL;

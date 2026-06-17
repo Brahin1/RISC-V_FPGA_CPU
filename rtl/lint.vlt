@@ -1,0 +1,25 @@
+`verilator_config
+// Lint waivers for `make lint` (verilator --lint-only -Wall).
+// Only "declared but partly unused" warnings are waived, each one reviewed.
+
+// package constants that not every unit references
+lint_off -rule UNUSEDPARAM -file "*core_pkg.sv"
+
+// word-addressed memories: low two address bits and bits above the memory size
+lint_off -rule UNUSEDSIGNAL -file "*soc_top.sv" -match "*imem_a_addr*"
+lint_off -rule UNUSEDSIGNAL -file "*soc_top.sv" -match "*dmem_a_addr*"
+lint_off -rule UNUSEDSIGNAL -file "*soc_top.sv" -match "*'imem_addr'*"
+
+// funct3[2] is decoded upstream; mepc/branch predictor index ignore pc[1:0]
+lint_off -rule UNUSEDSIGNAL -file "*csr.sv" -match "*acc_funct3*"
+lint_off -rule UNUSEDSIGNAL -file "*csr.sv" -match "*trap_pc*"
+lint_off -rule UNUSEDSIGNAL -file "*muldiv.sv" -match "*ex_funct3*"
+lint_off -rule UNUSEDSIGNAL -file "*branch_predictor.sv" -match "*lk_pc*"
+lint_off -rule UNUSEDSIGNAL -file "*branch_predictor.sv" -match "*unused*"
+
+// 66-bit product: bits 65:64 are sign extension; divider remainder MSB is a borrow bit
+lint_off -rule UNUSEDSIGNAL -file "*muldiv.sv" -match "*m_prod*"
+lint_off -rule UNUSEDSIGNAL -file "*muldiv.sv" -match "*d_rem*"
+
+// MEM only looks at part of the control word
+lint_off -rule UNUSEDSIGNAL -file "*mem_stage.sv" -match "*'c'*"

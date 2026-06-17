@@ -35,7 +35,7 @@ riscof: $(RTL) sim_main.cpp
 	  -GDMEM_WORDS=16384 -GDMEM_BASE_ADDR=32\'h00400000 $(RTL) sim_main.cpp
 
 lint:
-	verilator --lint-only -Wall -I$(RTL_DIR) $(RTL) --top-module soc_top
+	verilator --lint-only -Wall -I$(RTL_DIR) $(RTL_DIR)/lint.vlt $(RTL) --top-module soc_top
 
 clean:
 	rm -rf obj_dir*
