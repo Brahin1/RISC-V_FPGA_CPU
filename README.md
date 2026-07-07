@@ -1,19 +1,56 @@
 # RV32IM five-stage RISC-V core
 
-An in-order RV32IM + Zicsr processor written from scratch in SystemVerilog, verified against the official RISC-V test suites and against Spike instruction by instruction. The SoC wrapper targets the Zynq-7020 programmable logic: the core runs out of two BRAM TCMs whose second ports are reachable from the ARM, so the PS can load programs and read results.
+An in-order RV32IM + Zicsr processor written from scratch in SystemVerilog, verified against the official RISC-V test suites and against Spike instruction by instruction, and benchmarked with CoreMark. The SoC wrapper targets the Zynq-7020 programmable logic: the core runs out of two BRAM TCMs whose second ports are reachable from the ARM, so the PS can load programs and read results.
 
 - **ISA:** RV32I + M + Zicsr, machine mode only, precise exceptions, machine timer interrupt
 - **Pipeline:** IF / ID / EX / MEM / WB, full operand forwarding, 1-cycle load-use interlock
 - **Multiply:** 33x33 signed multiply split over EX -> MEM (maps onto DSP48E1s), result forwardable from WB
 - **Divide:** iterative radix-2 restoring divider, 33-cycle stall, spec-defined divide-by-zero and overflow results
-- **Branch prediction:** static not-taken or BTFN (`BP_MODE`)
+- **Branch prediction:** 64-entry BTB with 2-bit counters (static not-taken and BTFN also selectable)
 - **Memory:** 32 KB IMEM + 32 KB DMEM tightly-coupled BRAM, single-cycle, no caches, so cycle counts are deterministic
 
-## Status
+## Results
 
-- riscv-tests `rv32ui-p` + `rv32um-p`: 48/48 on the pipeline, rv32ui 40/40 on the single-cycle reference
-- lockstep against Spike clean on CoreMark-sized random program batches
-- next: performance counters, CoreMark, RISCOF, BTB
+All numbers below come from the Verilator model of `soc_top`.
+
+| Metric | Value |
+|---|---|
+| riscv-tests (`rv32ui-p`, `rv32um-p`) | **48 / 48** pass |
+| riscv-arch-test via RISCOF (`rv32i_m/I`, `rv32i_m/M`) | **47 / 47** signatures match Spike |
+| Lockstep vs. Spike | **12.5 M** retired instructions compared (CoreMark + 600 random programs), **0 divergences** |
+| cocotb unit tests | 11 tests, ALU: 10 ops x 10k random vectors + corners, 0 mismatches |
+| CoreMark/MHz | **2.857** (GCC 13.2, `-O2`, 10 iterations) |
+| CPI on CoreMark | **1.117** |
+| Branch prediction accuracy (CoreMark) | **90.1 %** |
+
+### Branch prediction
+
+Same CoreMark binary, only `BP_MODE` changed:
+
+| | static not-taken | BTFN | BTB + 2-bit |
+|---|---|---|---|
+| Prediction accuracy | 44.2 % | 81.5 % | 90.1 % |
+| CPI | 1.219 | 1.136 | 1.117 |
+| CoreMark/MHz | 2.617 | 2.809 | 2.857 |
+
+### CPI breakdown (CoreMark, BTB + 2-bit)
+
+Produced by `tools/cpi_report.py` from the hardware performance counters (`mhpmcounter3-8`):
+
+```
+component                     cycles      CPI
+---------------------------------------------
+base (1 instr/cycle)         3133385    1.000
+branch mispredicts             57857    0.018
+jump redirects                 11055    0.004
+load-use interlocks           203289    0.065
+mul/div stalls                 93960    0.030
+other (traps, fill)                0    0.000
+---------------------------------------------
+total                        3499546    1.117
+```
+
+With a good predictor in place, load-use interlocks are the largest remaining loss, followed by the iterative divider.
 
 ## Microarchitecture
 
@@ -56,7 +93,51 @@ An in-order RV32IM + Zicsr processor written from scratch in SystemVerilog, veri
 
 ### CSRs
 
-`mstatus`, `misa`, `mie`, `mip`, `mtvec` (direct mode), `mscratch`, `mepc`, `mcause`, `mtval`, `mcycle[h]`, `minstret[h]`, the `cycle`/`instret` aliases.
+`mstatus`, `misa`, `mie`, `mip`, `mtvec` (direct mode), `mscratch`, `mepc`, `mcause`, `mtval`, `mcycle[h]`, `minstret[h]`, the `cycle`/`instret` aliases, and `mhpmcounter3-8`:
+
+| Counter | Event |
+|---|---|
+| `mhpmcounter3` | load-use interlock cycles |
+| `mhpmcounter4` | conditional branch mispredicts |
+| `mhpmcounter5` | JAL/JALR redirects |
+| `mhpmcounter6` | mul-use interlock + divider stall cycles |
+| `mhpmcounter7` | conditional branches executed |
+| `mhpmcounter8` | traps taken |
+
+## Verification
+
+| Layer | Where | What it covers |
+|---|---|---|
+| Unit tests | `tb/unit` (cocotb) | ALU, register file, MUL pipeline + divider (incl. ÷0, `INT_MIN / -1`, flush mid-divide), decoder legality over 40k random words |
+| Directed ISA tests | `tests/` | riscv-tests `rv32ui-p-*`, `rv32um-p-*` on the five-stage core, on the single-cycle reference (rv32ui) and on Spike |
+| Compliance | `tests/riscof` | riscv-arch-test I and M suites, memory signatures compared against Spike |
+| Lockstep | `tb/lockstep` | retire port vs. Spike `--log-commits` (or the Python ISS) on every retired instruction: PC, instruction, rd value, load/store address, store data |
+| Random programs | `tb/lockstep/rand_gen.py` | dependency chains, load-use and mul-use pairs, branches shadowing branches, JAL/JALR, ÷0 and overflow, CSR RMW with `rs1 = x0`, ECALL/EBREAK/illegal into a handler, all inside loops so the predictor trains and mispredicts |
+| Interrupts | `sw/tests/timer_irq` | 20 timer interrupts landing at arbitrary points of a running loop |
+
+Spike runs with `--disable-dtb --priv=m --isa=rv32im_zicsr` and the same memory regions as the SoC, so the same ELF runs unchanged on both.
+
+`fence_i` and `ma_data` from riscv-tests are not run: the core is Harvard (code cannot be written through the data port) and raises the misaligned-access exception rather than splitting misaligned accesses, which the spec allows. For the same Harvard reason only the I and M arch-test suites are run; the privilege suite's trap framework reads tables out of `.text` with loads.
+
+## Repo layout
+
+```
+rtl/            core_pkg, alu, regfile, decoder, muldiv, csr, branch_predictor, hazard_unit,
+                if/id/ex/mem/wb stages, core_top, tcm, mmio, soc_top, lint.vlt
+rtl/single_cycle/  single-cycle RV32I reference core
+tb/verilator/   C++ harness for soc_top (console, tohost, retire trace, VCD)
+tb/sc/          harness for the single-cycle core
+tb/unit/        cocotb unit tests
+tb/iss/         Python ISS (reference model for unit tests and an alternative lockstep reference)
+tb/lockstep/    trace comparator, random program generator, lockstep runner
+sw/common/      crt0, linker script, console + counter helpers
+sw/hello/       first program
+sw/coremark/    CoreMark port (EEMBC sources as a submodule)
+sw/tests/       directed tests (timer interrupt)
+tests/          riscv-tests environment for this memory map; riscv-tests and riscv-arch-test submodules
+tests/riscof/   RISCOF config, DUT plugin and Spike reference plugin
+tools/          elf2hex.py, run_tests.py, cpi_report.py
+```
 
 ## Getting started
 
@@ -67,6 +148,10 @@ git clone --recursive <repo>
 make sim          # Verilator models
 make isa          # riscv-tests
 make unit         # cocotb
+make lockstep     # CoreMark + 600 random programs vs. Spike
+make riscof       # arch tests
+make coremark     # CoreMark + CPI breakdown
+make regress      # everything
 ```
 
 Run any program by hand:
@@ -78,3 +163,13 @@ tb/verilator/obj_dir_bp2/Vsoc_top +imem=sw/hello/build/hello.imem.hex +dmem=sw/h
 
 Plusargs: `+trace=<file>` writes the retire trace, `+vcd=<file>` dumps waves (build with `TRACE=1`), `+max_cycles=<n>`.
 
+## Not in scope
+
+Caches, an MMU and supervisor/user modes, the A/F/C extensions, self-modifying code (`FENCE.I` is a no-op).
+
+## References
+
+- RISC-V unprivileged and privileged specifications
+- riscv-tests, riscv-arch-test + RISCOF, Spike (riscv-isa-sim)
+- EEMBC CoreMark
+- Harris & Harris, *Digital Design and Computer Architecture: RISC-V Edition*
