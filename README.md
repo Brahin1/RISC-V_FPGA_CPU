@@ -119,6 +119,12 @@ Spike runs with `--disable-dtb --priv=m --isa=rv32im_zicsr` and the same memory 
 
 `fence_i` and `ma_data` from riscv-tests are not run: the core is Harvard (code cannot be written through the data port) and raises the misaligned-access exception rather than splitting misaligned accesses, which the spec allows. For the same Harvard reason only the I and M arch-test suites are run; the privilege suite's trap framework reads tables out of `.text` with loads.
 
+### Bugs found along the way
+
+- **Combinational loop in the single-cycle core.** The register file's write-through read (needed for WB -> ID in the pipeline) closes a loop when the same module reads and writes a register in one cycle. Fixed with a `BYPASS` parameter.
+- **`mtval` on EBREAK.** Lockstep against Spike flagged the trap handler reading a different `mtval`; Spike reports the EBREAK's own PC. Found by the first batch of random programs.
+- **Console register inside Spike's `tohost`.** The console originally sat at `0x1000_0004`, which is the upper half of Spike's 64-bit `tohost`, so printing on Spike was read as an HTIF command. Moved the console and timer registers up by 8 bytes.
+
 ## Repo layout
 
 ```
